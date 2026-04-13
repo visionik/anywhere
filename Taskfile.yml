@@ -1,0 +1,47 @@
+version: '3'
+
+tasks:
+  default:
+    desc: List all available tasks
+    cmds:
+      - task --list
+    silent: true
+
+  check:
+    desc: Pre-commit gate — lint + typecheck + test + coverage
+    deps: [lint, typecheck, test:coverage]
+
+  lint:
+    desc: Run ESLint on src and tests
+    cmds:
+      - eslint src tests --ext .ts
+
+  typecheck:
+    desc: TypeScript type check (no emit)
+    cmds:
+      - tsc --noEmit
+
+  test:
+    desc: Run tests in watch mode
+    cmds:
+      - vitest
+
+  test:coverage:
+    desc: Run tests with coverage report (CI mode)
+    cmds:
+      - vitest run --coverage
+
+  build:
+    desc: Build library — tsup outputs dist/index.js (ESM) + dist/index.cjs (CJS) + types
+    cmds:
+      - tsup
+
+  clean:
+    desc: Remove build artifacts and coverage reports
+    cmds:
+      - rm -rf dist coverage
+
+  fmt:
+    desc: Format source files with Prettier
+    cmds:
+      - prettier --write "src/**/*.ts" "tests/**/*.ts"

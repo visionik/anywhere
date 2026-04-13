@@ -1,0 +1,47 @@
+{
+  "name": "@visionik/anywhere",
+  "version": "0.1.0",
+  "description": "Unified location library — normalize GPS data from device, NMEA, GDL-90, and more",
+  "type": "module",
+  "main": "./dist/index.cjs",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "import": "./dist/index.js",
+      "require": "./dist/index.cjs",
+      "types": "./dist/index.d.ts"
+    }
+  },
+  "files": ["dist"],
+  "engines": {
+    "node": ">=18"
+  },
+  "scripts": {
+    "test": "vitest",
+    "test:coverage": "vitest run --coverage",
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint src tests --ext .ts",
+    "fmt": "prettier --write \"src/**/*.ts\" \"tests/**/*.ts\"",
+    "build": "tsup"
+  },
+  "devDependencies": {
+    "@typescript-eslint/eslint-plugin": "^7.0.0",
+    "@typescript-eslint/parser": "^7.0.0",
+    "@vitest/coverage-v8": "^2.0.0",
+    "eslint": "^8.57.0",
+    "prettier": "^3.2.0",
+    "tsup": "^8.0.0",
+    "typescript": "^5.4.0",
+    "vitest": "^2.0.0"
+  },
+  "optionalDependencies": {
+    "serialport": "^12.0.0"
+  },
+  "keywords": ["gps", "location", "nmea", "gdl90", "aviation", "geolocation"],
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/visionik/anywhere.git"
+  }
+}

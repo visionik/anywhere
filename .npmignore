@@ -1,0 +1,14 @@
+src/
+tests/
+coverage/
+directive/
+history/
+vbrief/
+*.config.ts
+.eslintrc.json
+.prettierrc
+Taskfile.yml
+tsconfig.json
+SPECIFICATION.md
+PROJECT.md
+agents.md
