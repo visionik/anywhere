@@ -14,27 +14,27 @@ tasks:
   lint:
     desc: Run ESLint on src and tests
     cmds:
-      - eslint src tests --ext .ts
+      - npx eslint src tests --ext .ts
 
   typecheck:
     desc: TypeScript type check (no emit)
     cmds:
-      - tsc --noEmit
+      - npx tsc --noEmit
 
   test:
     desc: Run tests in watch mode
     cmds:
-      - vitest
+      - npx vitest
 
   test:coverage:
     desc: Run tests with coverage report (CI mode)
     cmds:
-      - vitest run --coverage
+      - npx vitest run --coverage
 
   build:
     desc: Build library — tsup outputs dist/index.js (ESM) + dist/index.cjs (CJS) + types
     cmds:
-      - tsup
+      - npx tsup
 
   clean:
     desc: Remove build artifacts and coverage reports
@@ -44,4 +44,4 @@ tasks:
   fmt:
     desc: Format source files with Prettier
     cmds:
-      - prettier --write "src/**/*.ts" "tests/**/*.ts"
+      - npx prettier --write "src/**/*.ts" "tests/**/*.ts"
