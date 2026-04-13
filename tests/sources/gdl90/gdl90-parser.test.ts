@@ -292,9 +292,12 @@ describe('parseGdl90Message — ownship speed invalid sentinel', () => {
     buf[0] = 0x0b;
     // Set lat/lon to something valid
     const lat = Math.round((37.77 * 0x800000) / 180);
-    buf[6] = (lat >> 16) & 0xff; buf[7] = (lat >> 8) & 0xff; buf[8] = lat & 0xff;
+    buf[6] = (lat >> 16) & 0xff;
+    buf[7] = (lat >> 8) & 0xff;
+    buf[8] = lat & 0xff;
     // Speed bytes 16-17 = 0xFFF (invalid)
-    buf[16] = 0xff; buf[17] = 0xf0;
+    buf[16] = 0xff;
+    buf[17] = 0xf0;
     const msg = parseGdl90Message(buf);
     expect(msg!.speedMs).toBeUndefined();
   });
@@ -303,13 +306,15 @@ describe('parseGdl90Message — ownship speed invalid sentinel', () => {
 describe('parseGdl90Message — AHRS additional sentinels', () => {
   it('returns undefined pitchDeg when pitch = 0x7FFF', () => {
     const buf = buildAhrsPayload(1.0, 0, 90);
-    buf[4] = 0x7f; buf[5] = 0xff; // pitch = 0x7FFF
+    buf[4] = 0x7f;
+    buf[5] = 0xff; // pitch = 0x7FFF
     expect(parseGdl90Message(buf)!.pitchDeg).toBeUndefined();
   });
 
   it('returns undefined headingDeg when heading = 0xFFFF', () => {
     const buf = buildAhrsPayload(0, 0, 0);
-    buf[7] = 0xff; buf[8] = 0xff; // heading = 0xFFFF
+    buf[7] = 0xff;
+    buf[8] = 0xff; // heading = 0xFFFF
     expect(parseGdl90Message(buf)!.headingDeg).toBeUndefined();
   });
 
@@ -321,11 +326,53 @@ describe('parseGdl90Message — AHRS additional sentinels', () => {
   });
 });
 
+describe('extractFrames — additional edge cases', () => {
+  it('skips bytes before the first 0x7E start flag', () => {
+    // Prefix non-0x7E byte before a valid frame (exercises the i++ continue branch)
+    const validFrame = Buffer.from(buildFrame(buildHeartbeatPayload(true)));
+    const withJunk = Buffer.concat([Buffer.from([0xab]), validFrame]);
+    const frames = extractFrames(withJunk);
+    expect(frames).toHaveLength(1);
+  });
+
+  it('returns no frames when a 0x7E start flag has no closing 0x7E', () => {
+    // Unclosed frame — the end=-1 break path
+    const unclosed = Buffer.from([0x7e, 0xab, 0xcd]);
+    expect(extractFrames(unclosed)).toHaveLength(0);
+  });
+
+  it('correctly unstuffs a frame whose payload contains a 0x7E byte', () => {
+    // Payload byte 0x7E gets stuffed to [0x7D, 0x5E] by buildFrame
+    // extractFrames must decode it back via the k<end TRUE branch (line 111)
+    const payload = new Uint8Array([0x00, 0x7e, 0x81]); // 0x7E in middle → triggers stuffing
+    const frame = Buffer.from(buildFrame(payload));
+    const frames = extractFrames(frame);
+    // CRC validates over original payload; first extracted byte is message ID 0x00
+    expect(frames.length).toBeGreaterThanOrEqual(1);
+    if (frames.length > 0) expect(frames[0]![0]).toBe(0x00);
+  });
+});
+
+describe('parseGdl90Message — 1-byte heartbeat (no status byte)', () => {
+  it('defaults gpsValid=false when status byte is absent', () => {
+    const msg = parseGdl90Message(new Uint8Array([0x00]));
+    expect(msg!.gpsValid).toBe(false); // payload[1] ?? 0 → gpsValid = false
+  });
+});
+
+describe('parseGdl90Message — short ownship payload', () => {
+  it('returns empty ownship when payload.length < 19', () => {
+    const msg = parseGdl90Message(new Uint8Array([0x0b]));
+    expect(msg!.type).toBe('ownship');
+    expect(msg!.latitude).toBeUndefined();
+  });
+});
+
 // ─── Unknown messages ──────────────────────────────────────────────────────
 
 describe('parseGdl90Message — unknown', () => {
   it('returns type "unknown" for unrecognised message IDs', () => {
-    const msg = parseGdl90Message(new Uint8Array([0xAA]));
+    const msg = parseGdl90Message(new Uint8Array([0xaa]));
     expect(msg).not.toBeNull();
     expect(msg!.type).toBe('unknown');
   });

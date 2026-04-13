@@ -8,6 +8,14 @@ Commits: [Conventional Commits](https://www.conventionalcommits.org/en/v1.0.0/)
 
 ## [Unreleased]
 
+### Added
+- TypeDoc configuration for generating an API reference site into `docs/api/`
+- Runnable `examples/efb-demo/index.ts` console demo showing `SimulatorSource` with `event`, `stale`, and `retry` offline behaviors
+
+### Changed
+- Expanded Task targets to lint/type-check examples and generate API docs
+- Added final `LocationManager` timer-cleanup and late-callback regression tests to close the remaining coverage gaps
+
 ## [0.1.0] — 2026-04-13
 
 ### Added
