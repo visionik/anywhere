@@ -9,3 +9,7 @@ export { DeviceLocationSource } from './sources/device/device-location-source.js
 export type { DeviceLocationSourceOptions } from './sources/device/device-location-source.js';
 export { GDL90Source } from './sources/gdl90/gdl90-source.js';
 export type { GDL90SourceOptions } from './sources/gdl90/gdl90-source.js';
+export { NMEASource } from './sources/nmea/nmea-source.js';
+export type { NMEASourceOptions, NmeaTransport } from './sources/nmea/nmea-source.js';
+export { SimulatorSource } from './sources/simulator/simulator-source.js';
+export type { SimulatorSourceOptions } from './sources/simulator/simulator-source.js';

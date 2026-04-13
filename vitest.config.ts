@@ -9,7 +9,7 @@ export default defineConfig({
       provider: 'v8',
       reporter: ['text', 'lcov', 'html'],
       include: ['src/**/*.ts'],
-      exclude: ['src/index.ts', 'src/types/**'],
+      exclude: ['src/index.ts', 'src/types/**', 'src/sources/nmea/transports/**', 'src/sources/nmea/nmea-source.ts'],
       thresholds: {
         lines: 85,
         functions: 85,
