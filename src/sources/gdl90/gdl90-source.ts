@@ -36,7 +36,12 @@ export class GDL90Source extends LocationSource {
 
   private readonly _opts: Required<GDL90SourceOptions>;
   private _socket: Socket | null = null;
-  /** Cached AHRS data waiting to annotate the next ownship position. */
+  /**
+   * Cached AHRS data waiting to annotate the next ownship `Position`.
+   * Only `rollDeg` and `pitchDeg` are applied; `headingDeg` is stored but
+   * intentionally unused — it is the aircraft's magnetic heading, not
+   * magnetic declination, and does not map to `Position.magneticVariation`.
+   */
   private _ahrsCache: Pick<Gdl90Message, 'rollDeg' | 'pitchDeg' | 'headingDeg'> | null = null;
 
   constructor(options: GDL90SourceOptions = {}) {

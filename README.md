@@ -252,7 +252,7 @@ GDL-90 is a binary UDP protocol originally defined by the FAA and widely adopted
 |---|---|
 | `0x00` Heartbeat | GPS validity flags, UTC timestamp, status bits |
 | `0x0B` Ownship Report | Primary GPS position, geometric altitude, ground velocity |
-| `0x65` ForeFlight AHRS | Roll, pitch, heading, yaw rate — full attitude data |
+| `0x65` ForeFlight AHRS | Roll and pitch (annotated onto the next ownship `Position`); heading decoded but not exposed (it is the aircraft's magnetic heading, not magnetic declination) |
 
 The source manages UDP socket binding, `0x7E` frame delimiter detection, byte unstuffing (`0x7D` escape sequences), and CRC-16/CCITT validation before decoding any message payload.
 
@@ -298,10 +298,12 @@ flowchart TD
 ```
 
 **Tunable parameters:**
-- **`priorityOrder`** — explicit ranked list of source names
-- **`minUpdateIntervalMs`** — rate-limits position emissions (e.g., 200 ms prevents flooding)
-- **`hysteresisMs`** — minimum time a higher-priority source must be healthy before promotion
-- **`minQuality`** — minimum accuracy / HDOP threshold to consider a fix valid
+- **`priorityOrder`** — explicit ranked list of source IDs (e.g. `['gdl90', 'nmea', 'device']`)
+- **`minUpdateIntervalMs`** — rate-limits position emissions (e.g. 200 ms prevents flooding)
+- **`hysteresisMs`** — milliseconds a higher-priority source must stay healthy before promotion (prevents oscillation)
+- **`minQuality`** — minimum quality score (0–1) required to consider a source valid
+- **`offlineBehavior`** — what to do when all sources go offline: `'event'` (default), `'stale'` (re-emit last position with `stale: true`), or `'retry'` (auto-restart sources)
+- **`retryIntervalMs`** — milliseconds between restart attempts when `offlineBehavior: 'retry'`
 
 ---
 
@@ -316,7 +318,7 @@ npm install @visionik/anywhere
 Use all available sources, take the best fix automatically:
 
 ```ts
-import { LocationManager, DeviceLocationSource, GDL90Source, NMEASource } from 'libanywhere';
+import { LocationManager, DeviceLocationSource, GDL90Source, NMEASource } from '@visionik/anywhere';
 
 const manager = new LocationManager({
   sources: [
@@ -326,10 +328,15 @@ const manager = new LocationManager({
   ],
   priorityOrder: ['gdl90', 'nmea', 'device'],
   minUpdateIntervalMs: 200,
+  offlineBehavior: 'stale',
 });
 
 manager.on('position', (pos) => {
   console.log(`[${pos.source}] ${pos.latitude.toFixed(6)}, ${pos.longitude.toFixed(6)}`);
+});
+
+manager.on('sourceChange', (from, to) => {
+  console.log(`Active source: ${from ?? 'none'} → ${to ?? 'offline'}`);
 });
 
 manager.start();
@@ -338,11 +345,28 @@ manager.start();
 Browser-only (no hardware receiver):
 
 ```ts
-import { LocationManager, DeviceLocationSource } from 'libanywhere';
+import { LocationManager, DeviceLocationSource } from '@visionik/anywhere';
 
 const manager = new LocationManager();
 manager.addSource(new DeviceLocationSource({ enableHighAccuracy: true }));
 manager.on('position', (pos) => { /* ... */ });
+manager.start();
+```
+
+Testing or CI (no hardware needed):
+
+```ts
+import { LocationManager, SimulatorSource } from '@visionik/anywhere';
+
+const route = [
+  { latitude: 37.77, longitude: -122.42, timestamp: new Date(), source: 'sim' },
+  { latitude: 37.78, longitude: -122.43, timestamp: new Date(), source: 'sim' },
+];
+
+const manager = new LocationManager({
+  sources: [new SimulatorSource({ route, intervalMs: 1000, loop: true })],
+});
+manager.on('position', (pos) => console.log(pos));
 manager.start();
 ```
 
@@ -355,20 +379,21 @@ manager.start();
 gantt
     title Anywhere Release Roadmap
     dateFormat YYYY-MM
-    section v0.1 — Foundation
-    Core Position & LocationSource types  :done,    2026-04, 1M
-    LocationManager priority & fallback   :active,  2026-04, 2M
-    DeviceLocationSource                  :active,  2026-04, 2M
-    NMEA 0183 parser                      :         2026-05, 2M
-    GDL-90 UDP parser                     :         2026-05, 2M
-    section v0.2 — Transports & Testing
-    Serial & Bluetooth transports         :         2026-07, 2M
-    SimulatorSource with route replay     :         2026-07, 1M
-    Unit tests & integration tests        :         2026-08, 2M
-    section v0.3 — Fusion & UI
-    Kalman filter / sensor fusion         :         2026-10, 2M
-    React & Vue hooks                     :         2026-11, 1M
-    Example EFB dashboard                 :         2026-12, 2M
+    section v0.1 — Foundation (released)
+    Core types, LocationSource, TypedEmitter  :done, 2026-04, 1M
+    LocationManager (priority, fallback, offline) :done, 2026-04, 1M
+    DeviceLocationSource (W3C Geolocation)    :done, 2026-04, 1M
+    NMEA 0183 parser (all transports)         :done, 2026-04, 1M
+    GDL-90 UDP parser (Heartbeat + Ownship + AHRS) :done, 2026-04, 1M
+    SimulatorSource                           :done, 2026-04, 1M
+    section v0.2 — Native Platform Support
+    Capacitor bridge (iOS / Android)          :      2026-07, 2M
+    Electron / Tauri bridge (Desktop)         :      2026-08, 2M
+    Kalman filter position fusion             :      2026-09, 2M
+    section v0.3 — UI & Ecosystem
+    React & Vue hooks                         :      2026-11, 1M
+    Example EFB dashboard                     :      2026-12, 2M
+    npm publish v1.0.0                        :      2027-01, 1M
 ```
 
 ---
@@ -381,8 +406,6 @@ MIT
 
 *Made for pilots, builders, and developers who just want to know "where" — from anywhere.*
 *Feedback, contributions, and Stratux/GDL-90 test reports are welcome!*
-
-## Core Concepts
 
 ### Position Interface
 All sources emit the same normalized data:

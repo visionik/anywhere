@@ -190,9 +190,10 @@ Subphases 2.1–2.4 have no dependencies on each other and may be implemented in
 - **Task 2.2.4:** Decode Ownship Report (0x0B) — lat/lon from 3-byte semicircle encoding, geometric altitude (25ft increments), NACp→accuracy, horizontal velocity components→speed+track (traces: FR-6)
   - Dependencies: 2.2.2
   - Acceptance: position emitted with correct decimal degrees; altitude in meters; speed in m/s; `source: 'gdl90'`
-- **Task 2.2.5:** Decode ForeFlight AHRS (0x65) — roll (0.1°/LSB), pitch (0.1°/LSB), heading, yaw rate; cache and annotate next Ownship position (traces: FR-6)
+- **Task 2.2.5:** Decode ForeFlight AHRS (0x65) — roll (0.1°/LSB), pitch (0.1°/LSB); cache and annotate next Ownship position (traces: FR-6)
   - Dependencies: 2.2.4
-  - Acceptance: `roll`, `pitch`, `magneticVariation` populated on emitted `Position` when AHRS received
+  - Acceptance: `roll` and `pitch` populated on emitted `Position` when AHRS received; `headingDeg` is decoded but not mapped to any `Position` field (it is the aircraft's magnetic heading, not magnetic declination)
+  - Note: Corrected by PR #2 — original spec incorrectly listed `magneticVariation`
 - **Task 2.2.6:** Tests — construct real GDL-90 binary frames; inject via mock socket (traces: FR-6, NFR-5)
   - Dependencies: 2.2.3, 2.2.4, 2.2.5
   - Acceptance: known frames → expected field values; ≥85% coverage
