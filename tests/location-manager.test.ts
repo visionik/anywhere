@@ -414,6 +414,28 @@ describe('LocationManager', () => {
     });
   });
 
+  describe('lower-priority source emits while active is healthy', () => {
+    it('keeps emitting from active source and ignores lower-priority position', () => {
+      const high = new StubSource('gdl90');
+      const low  = new StubSource('nmea');
+      const manager = new LocationManager({
+        sources: [high, low],
+        priorityOrder: ['gdl90', 'nmea'],
+      });
+      const listener = vi.fn();
+      manager.on('position', listener);
+      manager.start();
+
+      high.push(makePos('gdl90'));  // gdl90 becomes active
+      high.push(makePos('gdl90'));  // emitted (active source)
+      low.push(makePos('nmea'));    // lower-priority — gdl90 is healthy, else branch fires
+      high.push(makePos('gdl90'));  // still emitted
+
+      const sources = listener.mock.calls.map((c) => (c[0] as Position).source);
+      expect(sources.every((s) => s === 'gdl90')).toBe(true);
+    });
+  });
+
   describe('equal-priority sources', () => {
     it('keeps the active source when a new source has equal (unlisted) priority', () => {
       const a = new StubSource('a'); // both unlisted → equal priority

@@ -286,6 +286,41 @@ describe('parseGdl90Message — ownship altitude invalid sentinel', () => {
   });
 });
 
+describe('parseGdl90Message — ownship speed invalid sentinel', () => {
+  it('returns undefined speedMs when speed field is 0xFFF', () => {
+    const buf = new Uint8Array(29);
+    buf[0] = 0x0b;
+    // Set lat/lon to something valid
+    const lat = Math.round((37.77 * 0x800000) / 180);
+    buf[6] = (lat >> 16) & 0xff; buf[7] = (lat >> 8) & 0xff; buf[8] = lat & 0xff;
+    // Speed bytes 16-17 = 0xFFF (invalid)
+    buf[16] = 0xff; buf[17] = 0xf0;
+    const msg = parseGdl90Message(buf);
+    expect(msg!.speedMs).toBeUndefined();
+  });
+});
+
+describe('parseGdl90Message — AHRS additional sentinels', () => {
+  it('returns undefined pitchDeg when pitch = 0x7FFF', () => {
+    const buf = buildAhrsPayload(1.0, 0, 90);
+    buf[4] = 0x7f; buf[5] = 0xff; // pitch = 0x7FFF
+    expect(parseGdl90Message(buf)!.pitchDeg).toBeUndefined();
+  });
+
+  it('returns undefined headingDeg when heading = 0xFFFF', () => {
+    const buf = buildAhrsPayload(0, 0, 0);
+    buf[7] = 0xff; buf[8] = 0xff; // heading = 0xFFFF
+    expect(parseGdl90Message(buf)!.headingDeg).toBeUndefined();
+  });
+
+  it('returns short AHRS object when payload < 9 bytes', () => {
+    const short = new Uint8Array([0x65, 0x01]); // only 2 bytes
+    const msg = parseGdl90Message(short);
+    expect(msg!.type).toBe('ahrs');
+    expect(msg!.rollDeg).toBeUndefined();
+  });
+});
+
 // ─── Unknown messages ──────────────────────────────────────────────────────
 
 describe('parseGdl90Message — unknown', () => {

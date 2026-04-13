@@ -12,8 +12,23 @@ const makePos = (lat: number): Position => ({
 const ROUTE: Position[] = [makePos(1), makePos(2), makePos(3)];
 
 describe('SimulatorSource', () => {
-  it('has sourceId = "simulator"', () => {
+  it('has sourceId = "simulator" by default', () => {
     expect(new SimulatorSource({ route: ROUTE, intervalMs: 100 }).sourceId).toBe('simulator');
+  });
+
+  it('accepts a custom sourceId', () => {
+    expect(new SimulatorSource({ route: ROUTE, intervalMs: 100, sourceId: 'gdl90' }).sourceId).toBe('gdl90');
+  });
+
+  it('emits positions with the configured sourceId', () => {
+    vi.useFakeTimers();
+    const source = new SimulatorSource({ route: ROUTE, intervalMs: 100, sourceId: 'custom' });
+    const handler = vi.fn();
+    source.onPosition = handler;
+    source.start();
+    vi.advanceTimersByTime(100);
+    expect((handler.mock.calls[0][0] as Position).source).toBe('custom');
+    vi.useRealTimers();
   });
 
   it('emits positions from route at the configured interval', () => {
@@ -57,6 +72,20 @@ describe('SimulatorSource', () => {
 
     vi.advanceTimersByTime(500); // 5 ticks, but only 3 positions
     expect(handler).toHaveBeenCalledTimes(3);
+
+    vi.useRealTimers();
+  });
+
+  it('emits onStatus connected=false when non-looping route is exhausted', () => {
+    vi.useFakeTimers();
+    const source = new SimulatorSource({ route: ROUTE, intervalMs: 100, loop: false });
+    const statusHandler = vi.fn();
+    source.onStatus = statusHandler;
+    source.start();
+
+    vi.advanceTimersByTime(400); // all 3 positions emitted + 1 extra tick
+    const lastStatus = statusHandler.mock.calls.at(-1)?.[0] as { connected: boolean; quality: number };
+    expect(lastStatus?.connected).toBe(false);
 
     vi.useRealTimers();
   });

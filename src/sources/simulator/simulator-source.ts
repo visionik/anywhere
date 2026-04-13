@@ -9,9 +9,16 @@ export interface SimulatorSourceOptions {
   intervalMs: number;
   /**
    * When `true` (default), replay loops back to `route[0]` after the last position.
-   * When `false`, emission stops after the last position.
+   * When `false`, emission stops after the last position and `onStatus` is called
+   * with `{ connected: false, quality: 0 }` to signal the source is exhausted.
    */
   loop?: boolean;
+  /**
+   * Override the source identifier reported to {@link LocationManager}.
+   * Default: `'simulator'`. Set this when running multiple simulator sources
+   * with different priorities (e.g. `'gdl90'`, `'nmea'`).
+   */
+  sourceId?: string;
 }
 
 /**
@@ -32,7 +39,7 @@ export interface SimulatorSourceOptions {
  * ```
  */
 export class SimulatorSource extends LocationSource {
-  override readonly sourceId = 'simulator';
+  override readonly sourceId: string;
 
   private readonly _route: Position[];
   private readonly _intervalMs: number;
@@ -43,6 +50,7 @@ export class SimulatorSource extends LocationSource {
 
   constructor(options: SimulatorSourceOptions) {
     super();
+    this.sourceId = options.sourceId ?? 'simulator';
     this._route = options.route;
     this._intervalMs = options.intervalMs;
     this._loop = options.loop ?? true;
@@ -73,7 +81,7 @@ export class SimulatorSource extends LocationSource {
     const pos = this._route[this._index];
     if (pos === undefined) return;
 
-    this.emitPosition({ ...pos, source: 'simulator', timestamp: new Date() });
+    this.emitPosition({ ...pos, source: this.sourceId, timestamp: new Date() });
 
     if (!this._statusEmitted) {
       this._statusEmitted = true;
@@ -86,8 +94,10 @@ export class SimulatorSource extends LocationSource {
       if (this._loop) {
         this._index = 0;
         this._scheduleNext();
+      } else {
+        // One-shot exhausted — signal offline so LocationManager can fall back
+        this.emitStatus({ connected: false, quality: 0 });
       }
-      // else: one-shot — stop after last position
     } else {
       this._scheduleNext();
     }
