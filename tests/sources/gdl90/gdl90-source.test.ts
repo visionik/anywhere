@@ -177,6 +177,19 @@ describe('GDL90Source', () => {
       expect(pos.pitch).toBeCloseTo(-2.3, 1);
     });
 
+    it('does not set magneticVariation from AHRS heading (different concept from magnetic declination)', () => {
+      const source = new GDL90Source();
+      const posHandler = vi.fn();
+      source.onPosition = posHandler;
+      source.start();
+
+      mockSocket.emit('message', makeAhrsDatagram(0, 0, 270));
+      mockSocket.emit('message', makeOwnshipDatagram(37.0, -122.0, 1000, 100, 0));
+
+      const pos: Position = posHandler.mock.calls[0][0];
+      expect(pos.magneticVariation).toBeUndefined();
+    });
+
     it('clears AHRS cache after it is applied to a position', () => {
       const source = new GDL90Source();
       const posHandler = vi.fn();

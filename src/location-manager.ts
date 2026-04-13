@@ -56,6 +56,8 @@ interface SourceState {
   healthy: boolean;
   quality: number;
   lastPosition: Position | null;
+  /** `true` once at least one `StatusEvent` has been received from this source. */
+  hasReceivedStatus: boolean;
 }
 
 /**
@@ -114,7 +116,7 @@ export class LocationManager extends TypedEmitter<LocationManagerEvents> {
     source.onError = (_err: Error) => {
       this._markUnhealthy(id);
     };
-    this._sources.set(id, { source, healthy: false, quality: 0, lastPosition: null });
+    this._sources.set(id, { source, healthy: false, quality: 0, lastPosition: null, hasReceivedStatus: false });
     return this;
   }
 
@@ -127,6 +129,11 @@ export class LocationManager extends TypedEmitter<LocationManagerEvents> {
     if (state) {
       state.source.stop();
       this._sources.delete(sourceId);
+      const pending = this._hysteresisTimers.get(sourceId);
+      if (pending !== undefined) {
+        clearTimeout(pending);
+        this._hysteresisTimers.delete(sourceId);
+      }
       if (this._activeId === sourceId) {
         this._activeId = null;
         this._reevaluate();
@@ -158,14 +165,16 @@ export class LocationManager extends TypedEmitter<LocationManagerEvents> {
     if (!state) return;
     state.lastPosition = pos;
     state.healthy = true;
-    // Only update quality from position if no explicit status has been reported
-    if (state.quality === 0) state.quality = this._deriveQuality(pos);
+    // Only derive quality from the position if no explicit status has been received.
+    // Once a source has emitted a StatusEvent, quality is managed exclusively by those events.
+    if (!state.hasReceivedStatus) state.quality = this._deriveQuality(pos);
     this._reevaluate(id, pos);
   }
 
   private _handleStatus(id: string, status: StatusEvent): void {
     const state = this._sources.get(id);
     if (!state) return;
+    state.hasReceivedStatus = true;
     state.healthy = status.connected;
     state.quality = status.quality;
     this._reevaluate();

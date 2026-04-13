@@ -314,6 +314,23 @@ describe('LocationManager', () => {
       source.push(makePos('gps', { accuracy: 500 }));
       expect(listener).not.toHaveBeenCalled();
     });
+
+    it('does not override status-reported quality=0 with position-derived quality', () => {
+      const source = new StubSource('gps');
+      const manager = new LocationManager({
+        sources: [source],
+        minQuality: 0.5,
+      });
+      const listener = vi.fn();
+      manager.on('position', listener);
+      manager.start();
+
+      // Status explicitly reports quality=0 (e.g. disconnected then reconnected)
+      source.setStatus(false, 0);
+      // A position arrives — should NOT override quality=0 with a derived quality
+      source.push(makePos('gps', { accuracy: 5 })); // would derive quality ≈ 1.0 without the fix
+      expect(listener).not.toHaveBeenCalled();
+    });
   });
 
   describe('error handling', () => {
@@ -391,6 +408,30 @@ describe('LocationManager', () => {
       fallback.push(makePos('nmea')); // nmea should now emit
 
       expect((posListener.mock.calls.at(-1)?.[0] as Position).source).toBe('nmea');
+    });
+
+    it('cancels a pending hysteresis timer when the source being waited on is removed', () => {
+      vi.useFakeTimers();
+      const primary = new StubSource('gdl90');
+      const fallback = new StubSource('nmea');
+      const manager = new LocationManager({
+        sources: [primary, fallback],
+        priorityOrder: ['gdl90', 'nmea'],
+        hysteresisMs: 1000,
+      });
+      const changeListener = vi.fn();
+      manager.on('sourceChange', changeListener);
+      manager.start();
+
+      fallback.push(makePos('nmea'));  // nmea becomes active
+      primary.push(makePos('gdl90')); // gdl90 starts hysteresis timer
+
+      manager.removeSource('gdl90');  // remove the source waiting on hysteresis
+
+      // After hysteresis period would have elapsed, gdl90 must NOT be promoted
+      vi.advanceTimersByTime(1500);
+      expect(changeListener).not.toHaveBeenCalledWith('nmea', 'gdl90');
+      vi.useRealTimers();
     });
   });
 
