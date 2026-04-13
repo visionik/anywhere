@@ -21,6 +21,8 @@ export class TypedEmitter<T extends EventMap> {
 
   /**
    * Register a listener for the given event.
+   * @param event - Event name to subscribe to.
+   * @param listener - Callback invoked whenever the event is emitted.
    * @returns `this` for chaining.
    */
   on<K extends keyof T>(event: K, listener: (...args: T[K]) => void): this {
@@ -36,6 +38,8 @@ export class TypedEmitter<T extends EventMap> {
   /**
    * Remove a previously registered listener.
    * No-op if the listener was not registered.
+   * @param event - Event name to unsubscribe from.
+   * @param listener - Previously registered callback to remove.
    * @returns `this` for chaining.
    */
   off<K extends keyof T>(event: K, listener: (...args: T[K]) => void): this {
@@ -49,6 +53,8 @@ export class TypedEmitter<T extends EventMap> {
 
   /**
    * Emit an event, invoking all registered listeners with the provided arguments.
+   * @param event - Event name to emit.
+   * @param args - Payload tuple forwarded to each listener.
    */
   emit<K extends keyof T>(event: K, ...args: T[K]): void {
     const arr = this._listeners[event];

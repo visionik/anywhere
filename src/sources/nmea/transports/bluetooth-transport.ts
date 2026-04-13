@@ -23,33 +23,47 @@ export class BluetoothTransport implements NmeaTransport {
 
   start(onLine: (line: string) => void, onError: (err: Error) => void): void {
     // @ts-expect-error bluetooth-serial-port is an optional dep with no type declarations
-    import('bluetooth-serial-port').then(({ BluetoothSerialPort }) => {
-      const bt = new BluetoothSerialPort();
-      bt.on('data', (buffer: Buffer) => {
-        const lines = buffer.toString().split('\n');
-        for (const line of lines) { const t = line.trim(); if (t) onLine(t); }
-      });
-      bt.on('closed', () => onError(new Error('Bluetooth connection closed')));
-      if (this._deviceName) {
-        bt.inquire();
-        bt.on('found', (address: string, name: string) => {
-          if (name === this._deviceName) {
-            bt.findSerialPortChannel(address, (channel: number) => {
-              bt.connect(address, channel, () => { /* connected */ }, () => {
-                onError(new Error(`Bluetooth connect failed to ${name}`));
-              });
-            });
+    import('bluetooth-serial-port')
+      .then(({ BluetoothSerialPort }) => {
+        const bt = new BluetoothSerialPort();
+        bt.on('data', (buffer: Buffer) => {
+          const lines = buffer.toString().split('\n');
+          for (const line of lines) {
+            const t = line.trim();
+            if (t) onLine(t);
           }
         });
-      }
-      this._conn = bt;
-    }).catch((err: unknown) => {
-      const msg = err instanceof Error ? err.message : String(err);
-      onError(new Error(
-        `bluetooth-serial-port unavailable: ${msg}. ` +
-        `On most platforms, pair the device first and use SerialTransport with the resulting /dev/tty.* path.`
-      ));
-    });
+        bt.on('closed', () => onError(new Error('Bluetooth connection closed')));
+        if (this._deviceName) {
+          bt.inquire();
+          bt.on('found', (address: string, name: string) => {
+            if (name === this._deviceName) {
+              bt.findSerialPortChannel(address, (channel: number) => {
+                bt.connect(
+                  address,
+                  channel,
+                  () => {
+                    /* connected */
+                  },
+                  () => {
+                    onError(new Error(`Bluetooth connect failed to ${name}`));
+                  },
+                );
+              });
+            }
+          });
+        }
+        this._conn = bt;
+      })
+      .catch((err: unknown) => {
+        const msg = err instanceof Error ? err.message : String(err);
+        onError(
+          new Error(
+            `bluetooth-serial-port unavailable: ${msg}. ` +
+              `On most platforms, pair the device first and use SerialTransport with the resulting /dev/tty.* path.`,
+          ),
+        );
+      });
   }
 
   stop(): void {

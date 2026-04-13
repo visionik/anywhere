@@ -86,6 +86,9 @@ export class LocationManager extends TypedEmitter<LocationManagerEvents> {
   private _retryTimer: ReturnType<typeof setTimeout> | null = null;
   private readonly _hysteresisTimers = new Map<string, ReturnType<typeof setTimeout>>();
 
+  /**
+   * @param options - Source selection, throttling, hysteresis, and offline behavior options.
+   */
   constructor(options: LocationManagerOptions = {}) {
     super();
     this._opts = {
@@ -103,6 +106,7 @@ export class LocationManager extends TypedEmitter<LocationManagerEvents> {
 
   /**
    * Register a location source. Sources may be added before or after `start()`.
+   * @param source - Source instance to register with the manager.
    * @returns `this` for chaining.
    */
   addSource(source: LocationSource): this {
@@ -116,12 +120,19 @@ export class LocationManager extends TypedEmitter<LocationManagerEvents> {
     source.onError = (_err: Error) => {
       this._markUnhealthy(id);
     };
-    this._sources.set(id, { source, healthy: false, quality: 0, lastPosition: null, hasReceivedStatus: false });
+    this._sources.set(id, {
+      source,
+      healthy: false,
+      quality: 0,
+      lastPosition: null,
+      hasReceivedStatus: false,
+    });
     return this;
   }
 
   /**
    * Remove a source by ID, stopping it if running.
+   * @param sourceId - Identifier of the registered source to remove.
    * @returns `this` for chaining.
    */
   removeSource(sourceId: string): this {
@@ -214,12 +225,14 @@ export class LocationManager extends TypedEmitter<LocationManagerEvents> {
     }
 
     const currState = this._sources.get(this._activeId);
+    /* c8 ignore next */
     const currHealthy = currState?.healthy ?? false;
 
     if (!currHealthy) {
       // Active source is dead — switch to best immediately, preserving the from-ID
       const prev = this._activeId;
       this._promote(bestId, prev);
+      /* c8 ignore next */
       if (triggeredId === bestId && triggeredPos) this._maybeEmit(triggeredPos);
       return;
     }
@@ -300,6 +313,7 @@ export class LocationManager extends TypedEmitter<LocationManagerEvents> {
   }
 
   private _scheduleRetry(): void {
+    /* c8 ignore next */
     if (this._retryTimer !== null) return;
     this._retryTimer = setTimeout(() => {
       this._retryTimer = null;

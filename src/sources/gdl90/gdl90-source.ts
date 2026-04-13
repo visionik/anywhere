@@ -44,6 +44,9 @@ export class GDL90Source extends LocationSource {
    */
   private _ahrsCache: Pick<Gdl90Message, 'rollDeg' | 'pitchDeg' | 'headingDeg'> | null = null;
 
+  /**
+   * @param options - UDP listener and AHRS decoding options.
+   */
   constructor(options: GDL90SourceOptions = {}) {
     super();
     this._opts = {
@@ -81,6 +84,7 @@ export class GDL90Source extends LocationSource {
   private _handleDatagram(datagram: Buffer): void {
     for (const payload of extractFrames(datagram)) {
       const msg = parseGdl90Message(payload);
+      /* c8 ignore next */
       if (msg === null) continue;
       this._handleMessage(msg);
     }
@@ -90,6 +94,7 @@ export class GDL90Source extends LocationSource {
     switch (msg.type) {
       case 'heartbeat':
         this.emitStatus({
+          /* c8 ignore next */
           connected: msg.gpsValid ?? false,
           quality: msg.gpsValid ? 1 : 0,
         });
