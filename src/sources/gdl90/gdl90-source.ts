@@ -128,9 +128,9 @@ export class GDL90Source extends LocationSource {
     if (this._ahrsCache !== null) {
       pos.roll = this._ahrsCache.rollDeg;
       pos.pitch = this._ahrsCache.pitchDeg;
-      if (this._ahrsCache.headingDeg !== undefined) {
-        pos.magneticVariation = this._ahrsCache.headingDeg;
-      }
+      // headingDeg is the aircraft's magnetic heading — it does not map to
+      // Position.magneticVariation (which is magnetic declination / variation).
+      // The ownship track from the GDL-90 report already populates pos.heading.
     }
 
     return pos;
