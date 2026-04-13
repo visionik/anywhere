@@ -9,17 +9,22 @@ tasks:
 
   check:
     desc: Pre-commit gate — lint + typecheck + test + coverage
-    deps: [lint, typecheck, test:coverage]
+    deps: [lint, typecheck, typecheck:examples, test:coverage]
 
   lint:
-    desc: Run ESLint on src and tests
+    desc: Run ESLint on source, tests, and examples
     cmds:
-      - npx eslint src tests --ext .ts
+      - npx eslint src tests examples --ext .ts
 
   typecheck:
     desc: TypeScript type check (no emit)
     cmds:
       - npx tsc --noEmit
+
+  typecheck:examples:
+    desc: Type-check the runnable examples against the source tree
+    cmds:
+      - npx tsc --noEmit --project tsconfig.examples.json
 
   test:
     desc: Run tests in watch mode
@@ -36,12 +41,22 @@ tasks:
     cmds:
       - npx tsup
 
-  clean:
-    desc: Remove build artifacts and coverage reports
+  docs:api:
+    desc: Generate the TypeDoc API reference site into docs/api
     cmds:
-      - rm -rf dist coverage
+      - npx typedoc --options typedoc.json
+
+  example:efb-demo:
+    desc: Run the console EFB demo powered by SimulatorSource
+    cmds:
+      - npx tsx examples/efb-demo/index.ts
+
+  clean:
+    desc: Remove build artifacts, coverage reports, and generated API docs
+    cmds:
+      - rm -rf dist coverage docs/api
 
   fmt:
-    desc: Format source files with Prettier
+    desc: Format source, test, and example files with Prettier
     cmds:
-      - npx prettier --write "src/**/*.ts" "tests/**/*.ts"
+      - npx prettier --write "src/**/*.ts" "tests/**/*.ts" "examples/**/*.ts"

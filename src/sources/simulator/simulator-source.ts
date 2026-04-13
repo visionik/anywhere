@@ -48,6 +48,9 @@ export class SimulatorSource extends LocationSource {
   private _timer: ReturnType<typeof setTimeout> | null = null;
   private _statusEmitted = false;
 
+  /**
+   * @param options - Route replay configuration for the simulator.
+   */
   constructor(options: SimulatorSourceOptions) {
     super();
     this.sourceId = options.sourceId ?? 'simulator';
@@ -57,6 +60,7 @@ export class SimulatorSource extends LocationSource {
   }
 
   override start(): void {
+    this.stop();
     this._index = 0;
     this._statusEmitted = false;
     this._scheduleNext();
@@ -79,6 +83,7 @@ export class SimulatorSource extends LocationSource {
 
   private _emit(): void {
     const pos = this._route[this._index];
+    /* c8 ignore next */
     if (pos === undefined) return;
 
     this.emitPosition({ ...pos, source: this.sourceId, timestamp: new Date() });

@@ -17,7 +17,9 @@ describe('SimulatorSource', () => {
   });
 
   it('accepts a custom sourceId', () => {
-    expect(new SimulatorSource({ route: ROUTE, intervalMs: 100, sourceId: 'gdl90' }).sourceId).toBe('gdl90');
+    expect(new SimulatorSource({ route: ROUTE, intervalMs: 100, sourceId: 'gdl90' }).sourceId).toBe(
+      'gdl90',
+    );
   });
 
   it('emits positions with the configured sourceId', () => {
@@ -84,7 +86,10 @@ describe('SimulatorSource', () => {
     source.start();
 
     vi.advanceTimersByTime(400); // all 3 positions emitted + 1 extra tick
-    const lastStatus = statusHandler.mock.calls.at(-1)?.[0] as { connected: boolean; quality: number };
+    const lastStatus = statusHandler.mock.calls.at(-1)?.[0] as {
+      connected: boolean;
+      quality: number;
+    };
     expect(lastStatus?.connected).toBe(false);
 
     vi.useRealTimers();
@@ -109,6 +114,17 @@ describe('SimulatorSource', () => {
 
   it('does not throw if stop() is called before start()', () => {
     expect(() => new SimulatorSource({ route: ROUTE, intervalMs: 100 }).stop()).not.toThrow();
+  });
+
+  it('does nothing on start() when route is empty', () => {
+    vi.useFakeTimers();
+    const source = new SimulatorSource({ route: [], intervalMs: 100 });
+    const handler = vi.fn();
+    source.onPosition = handler;
+    source.start(); // should not schedule timer (line 73 guard)
+    vi.advanceTimersByTime(300);
+    expect(handler).not.toHaveBeenCalled();
+    vi.useRealTimers();
   });
 
   it('emits onStatus connected=true on first position', () => {
@@ -137,6 +153,25 @@ describe('SimulatorSource', () => {
     vi.advanceTimersByTime(100);
     expect(handler).toHaveBeenCalledTimes(1);
     expect((handler.mock.calls[0][0] as Position).latitude).toBe(1); // back to route[0]
+
+    vi.useRealTimers();
+  });
+
+  it('calling start() while already running restarts cleanly without leaking timers', () => {
+    vi.useFakeTimers();
+    const source = new SimulatorSource({ route: ROUTE, intervalMs: 100 });
+    const handler = vi.fn();
+    source.onPosition = handler;
+
+    source.start();
+    vi.advanceTimersByTime(100); // 1st position emitted
+    expect(handler).toHaveBeenCalledTimes(1);
+
+    // Call start() again without stop() — should cancel the in-flight timer and restart
+    source.start();
+    vi.advanceTimersByTime(100); // only 1 more call expected, not 2
+    expect(handler).toHaveBeenCalledTimes(2);
+    expect((handler.mock.calls[1][0] as Position).latitude).toBe(1); // restarted from route[0]
 
     vi.useRealTimers();
   });

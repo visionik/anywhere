@@ -19,8 +19,18 @@ describe('LocationManager + SimulatorSource integration', () => {
   describe('priority ordering', () => {
     it('emits only from the highest-priority source when both are active', () => {
       vi.useFakeTimers();
-      const high = new SimulatorSource({ route: makeRoute('gdl90'), intervalMs: 100, loop: true,  sourceId: 'gdl90' });
-      const low  = new SimulatorSource({ route: makeRoute('nmea'),  intervalMs: 100, loop: true,  sourceId: 'nmea' });
+      const high = new SimulatorSource({
+        route: makeRoute('gdl90'),
+        intervalMs: 100,
+        loop: true,
+        sourceId: 'gdl90',
+      });
+      const low = new SimulatorSource({
+        route: makeRoute('nmea'),
+        intervalMs: 100,
+        loop: true,
+        sourceId: 'nmea',
+      });
       const manager = new LocationManager({
         sources: [high, low],
         priorityOrder: ['gdl90', 'nmea'],
@@ -41,7 +51,12 @@ describe('LocationManager + SimulatorSource integration', () => {
 
     it('emits sourceChange(null, gdl90) on first fix', () => {
       vi.useFakeTimers();
-      const source = new SimulatorSource({ route: makeRoute('gdl90', 1), intervalMs: 100, loop: false, sourceId: 'gdl90' });
+      const source = new SimulatorSource({
+        route: makeRoute('gdl90', 1),
+        intervalMs: 100,
+        loop: false,
+        sourceId: 'gdl90',
+      });
       const manager = new LocationManager({ sources: [source], priorityOrder: ['gdl90'] });
       const changeListener = vi.fn();
       manager.on('sourceChange', changeListener);
@@ -56,8 +71,18 @@ describe('LocationManager + SimulatorSource integration', () => {
   describe('fallback when primary goes offline', () => {
     it('falls back to lower-priority source when primary stops', () => {
       vi.useFakeTimers();
-      const primary  = new SimulatorSource({ route: makeRoute('gdl90'), intervalMs: 100, loop: false, sourceId: 'gdl90' });
-      const fallback = new SimulatorSource({ route: makeRoute('nmea'), intervalMs: 100, loop: true,  sourceId: 'nmea' });
+      const primary = new SimulatorSource({
+        route: makeRoute('gdl90'),
+        intervalMs: 100,
+        loop: false,
+        sourceId: 'gdl90',
+      });
+      const fallback = new SimulatorSource({
+        route: makeRoute('nmea'),
+        intervalMs: 100,
+        loop: true,
+        sourceId: 'nmea',
+      });
       const manager = new LocationManager({
         sources: [primary, fallback],
         priorityOrder: ['gdl90', 'nmea'],
@@ -85,8 +110,18 @@ describe('LocationManager + SimulatorSource integration', () => {
       vi.useFakeTimers();
       // Primary fires at 50ms, fallback at 100ms — primary becomes active first
       // hysteresisMs=0 so no promotion delay
-      const primary  = new SimulatorSource({ route: makeRoute('gdl90', 1), intervalMs: 50,  loop: false, sourceId: 'gdl90' });
-      const fallback = new SimulatorSource({ route: makeRoute('nmea'), intervalMs: 100, loop: true,  sourceId: 'nmea' });
+      const primary = new SimulatorSource({
+        route: makeRoute('gdl90', 1),
+        intervalMs: 50,
+        loop: false,
+        sourceId: 'gdl90',
+      });
+      const fallback = new SimulatorSource({
+        route: makeRoute('nmea'),
+        intervalMs: 100,
+        loop: true,
+        sourceId: 'nmea',
+      });
       const manager = new LocationManager({
         sources: [primary, fallback],
         priorityOrder: ['gdl90', 'nmea'],
@@ -98,7 +133,9 @@ describe('LocationManager + SimulatorSource integration', () => {
 
       vi.advanceTimersByTime(600);
 
-      const transitions = changeListener.mock.calls.map(([from, to]) => `${String(from)}→${String(to)}`);
+      const transitions = changeListener.mock.calls.map(
+        ([from, to]) => `${String(from)}→${String(to)}`,
+      );
       // Sequence: null→gdl90 (first fix), gdl90→null (primary exhausted), null→nmea (fallback takes over)
       expect(transitions).toContain('null→gdl90');
       expect(transitions.some((t) => t.includes('nmea'))).toBe(true);
@@ -110,7 +147,11 @@ describe('LocationManager + SimulatorSource integration', () => {
   describe('offline behaviors', () => {
     it("offlineBehavior 'event': emits offline when only source exhausts", () => {
       vi.useFakeTimers();
-      const source = new SimulatorSource({ route: makeRoute('sim', 1), intervalMs: 100, loop: false });
+      const source = new SimulatorSource({
+        route: makeRoute('sim', 1),
+        intervalMs: 100,
+        loop: false,
+      });
       const manager = new LocationManager({
         sources: [source],
         offlineBehavior: 'event',
@@ -132,7 +173,11 @@ describe('LocationManager + SimulatorSource integration', () => {
 
     it("offlineBehavior 'stale': emits stale position when source disconnects", () => {
       vi.useFakeTimers();
-      const source = new SimulatorSource({ route: makeRoute('sim', 2), intervalMs: 100, loop: true });
+      const source = new SimulatorSource({
+        route: makeRoute('sim', 2),
+        intervalMs: 100,
+        loop: true,
+      });
       const manager = new LocationManager({
         sources: [source],
         offlineBehavior: 'stale',
@@ -156,7 +201,11 @@ describe('LocationManager + SimulatorSource integration', () => {
 
     it("offlineBehavior 'retry': schedules restart after retryIntervalMs", () => {
       vi.useFakeTimers();
-      const source = new SimulatorSource({ route: makeRoute('sim', 1), intervalMs: 50, loop: false });
+      const source = new SimulatorSource({
+        route: makeRoute('sim', 1),
+        intervalMs: 50,
+        loop: false,
+      });
       const manager = new LocationManager({
         sources: [source],
         offlineBehavior: 'retry',

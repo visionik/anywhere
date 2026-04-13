@@ -33,9 +33,13 @@ function makeOwnshipDatagram(lat: number, lon: number, altFt = 0, speedKts = 0, 
   const buf = new Uint8Array(29);
   buf[0] = 0x0b;
   const [la, lb, lc] = encodeInt24(Math.round((lat * 0x800000) / 180));
-  buf[6] = la; buf[7] = lb; buf[8] = lc;
+  buf[6] = la;
+  buf[7] = lb;
+  buf[8] = lc;
   const [loa, lob, loc] = encodeInt24(Math.round((lon * 0x800000) / 180));
-  buf[9] = loa; buf[10] = lob; buf[11] = loc;
+  buf[9] = loa;
+  buf[10] = lob;
+  buf[11] = loc;
   const altRaw = Math.round((altFt + 1000) / 25);
   buf[12] = (altRaw >> 4) & 0xff;
   buf[13] = (altRaw & 0x0f) << 4;
@@ -58,11 +62,14 @@ function makeAhrsDatagram(rollDeg: number, pitchDeg: number, headingDeg: number)
   buf[0] = 0x65;
   buf[1] = 0x01;
   const rollRaw = Math.round(rollDeg * 10) & 0xffff;
-  buf[2] = (rollRaw >> 8) & 0xff; buf[3] = rollRaw & 0xff;
+  buf[2] = (rollRaw >> 8) & 0xff;
+  buf[3] = rollRaw & 0xff;
   const pitchRaw = Math.round(pitchDeg * 10) & 0xffff;
-  buf[4] = (pitchRaw >> 8) & 0xff; buf[5] = pitchRaw & 0xff;
+  buf[4] = (pitchRaw >> 8) & 0xff;
+  buf[5] = pitchRaw & 0xff;
   const hdgRaw = Math.round(headingDeg * 10) & 0xffff;
-  buf[7] = (hdgRaw >> 8) & 0xff; buf[8] = hdgRaw & 0xff;
+  buf[7] = (hdgRaw >> 8) & 0xff;
+  buf[8] = hdgRaw & 0xff;
   return Buffer.from(buildFrame(buf));
 }
 
@@ -158,6 +165,20 @@ describe('GDL90Source', () => {
       source.start();
       mockSocket.emit('message', makeHeartbeatDatagram(false));
       expect(statusHandler).toHaveBeenCalledWith(expect.objectContaining({ connected: false }));
+    });
+  });
+
+  describe('unknown message type', () => {
+    it('silently ignores a message with type "unknown"', () => {
+      const source = new GDL90Source();
+      const posHandler = vi.fn();
+      source.onPosition = posHandler;
+      source.start();
+      // 0xAA is an unrecognised message ID — parser returns type: 'unknown'
+      const unknownPayload = new Uint8Array([0xaa]);
+      const frame = Buffer.from(buildFrame(unknownPayload));
+      mockSocket.emit('message', frame);
+      expect(posHandler).not.toHaveBeenCalled();
     });
   });
 

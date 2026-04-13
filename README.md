@@ -2,7 +2,7 @@
 
 **Get reliable position data from any source** — device GPS, NMEA 0183, GDL-90, and more.
 
-`@visionik/anywhere` (or `libanywhere`) is a lightweight TypeScript library that normalizes GPS/location data from multiple heterogeneous sources into a single, consistent `Position` interface. It supports automatic source prioritization, seamless fallback, and easy extension for new providers.
+`@visionik/anywhere` is a lightweight TypeScript library that normalizes GPS/location data from multiple heterogeneous sources into a single, consistent `Position` interface. It supports automatic source prioritization, seamless fallback, and easy extension for new providers.
 
 Perfect for aviation apps (EFBs, Stratux/ForeFlight-style tools), drone software, marine navigation, or any project that needs robust, reliable location from diverse hardware or OS APIs.
 
@@ -369,6 +369,26 @@ const manager = new LocationManager({
 manager.on('position', (pos) => console.log(pos));
 manager.start();
 ```
+
+### API Reference Site
+
+Generate the API reference site with:
+
+```bash
+task docs:api
+```
+
+The generated site is written to `docs/api/index.html`.
+
+### Runnable Example App
+
+Run the console example that demonstrates `SimulatorSource` with all three offline behaviors:
+
+```bash
+task example:efb-demo
+```
+
+It uses `examples/efb-demo/index.ts` and can also be run directly with `npx tsx examples/efb-demo/index.ts`.
 
 ---
 

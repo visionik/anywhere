@@ -1,0 +1,19 @@
+{
+  "$schema": "https://typedoc.org/schema.json",
+  "entryPoints": ["./src/index.ts"],
+  "entryPointStrategy": "resolve",
+  "tsconfig": "./tsconfig.json",
+  "out": "./docs/api",
+  "name": "@visionik/anywhere",
+  "includeVersion": true,
+  "readme": "./README.md",
+  "githubPages": true,
+  "excludePrivate": true,
+  "excludeReferences": true,
+  "searchInComments": true,
+  "searchInDocuments": true,
+  "ignoredHighlightLanguages": ["mermaid"],
+  "navigationLinks": {
+    "GitHub": "https://github.com/visionik/anywhere"
+  }
+}

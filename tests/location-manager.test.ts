@@ -109,13 +109,13 @@ describe('LocationManager', () => {
       manager.on('position', listener);
       manager.start();
 
-      source.push(makePos('gps'));  // emitted
-      source.push(makePos('gps'));  // throttled
-      source.push(makePos('gps'));  // throttled
+      source.push(makePos('gps')); // emitted
+      source.push(makePos('gps')); // throttled
+      source.push(makePos('gps')); // throttled
       expect(listener).toHaveBeenCalledTimes(1);
 
       vi.advanceTimersByTime(600);
-      source.push(makePos('gps'));  // emitted
+      source.push(makePos('gps')); // emitted
       expect(listener).toHaveBeenCalledTimes(2);
       vi.useRealTimers();
     });
@@ -197,8 +197,8 @@ describe('LocationManager', () => {
       manager.on('sourceChange', changeListener);
       manager.start();
 
-      primary.push(makePos('gdl90'));  // null → gdl90
-      primary.setStatus(false, 0);    // gdl90 → null (no fallback ready yet)
+      primary.push(makePos('gdl90')); // null → gdl90
+      primary.setStatus(false, 0); // gdl90 → null (no fallback ready yet)
       fallback.push(makePos('nmea')); // null → nmea
 
       // Two-step transition: primary goes offline first, then fallback activates
@@ -216,7 +216,9 @@ describe('LocationManager', () => {
         hysteresisMs: 1000,
       });
       const changeListener = vi.fn();
+      const posListener = vi.fn();
       manager.on('sourceChange', changeListener);
+      manager.on('position', posListener);
       manager.start();
 
       // Fallback becomes active (primary not yet emitting)
@@ -225,6 +227,10 @@ describe('LocationManager', () => {
       // Primary comes back — should NOT immediately take over
       primary.push(makePos('gdl90'));
       expect(changeListener).not.toHaveBeenCalledWith('nmea', 'gdl90');
+
+      // Active source (nmea) emits DURING the hysteresis window — covers line 247
+      fallback.push(makePos('nmea'));
+      expect(posListener).toHaveBeenLastCalledWith(expect.objectContaining({ source: 'nmea' }));
 
       // After hysteresis period, primary should be promoted
       vi.advanceTimersByTime(1100);
@@ -404,7 +410,7 @@ describe('LocationManager', () => {
       manager.start();
 
       primary.push(makePos('gdl90')); // gdl90 active
-      manager.removeSource('gdl90');  // remove active source
+      manager.removeSource('gdl90'); // remove active source
       fallback.push(makePos('nmea')); // nmea should now emit
 
       expect((posListener.mock.calls.at(-1)?.[0] as Position).source).toBe('nmea');
@@ -423,15 +429,35 @@ describe('LocationManager', () => {
       manager.on('sourceChange', changeListener);
       manager.start();
 
-      fallback.push(makePos('nmea'));  // nmea becomes active
+      fallback.push(makePos('nmea')); // nmea becomes active
       primary.push(makePos('gdl90')); // gdl90 starts hysteresis timer
 
-      manager.removeSource('gdl90');  // remove the source waiting on hysteresis
+      manager.removeSource('gdl90'); // remove the source waiting on hysteresis
 
       // After hysteresis period would have elapsed, gdl90 must NOT be promoted
       vi.advanceTimersByTime(1500);
       expect(changeListener).not.toHaveBeenCalledWith('nmea', 'gdl90');
       vi.useRealTimers();
+    });
+
+    it('ignores late position, status, and error callbacks from a removed source', () => {
+      const source = new StubSource('gps');
+      const manager = new LocationManager({ sources: [source], offlineBehavior: 'event' });
+      const posListener = vi.fn();
+      const offlineListener = vi.fn();
+      manager.on('position', posListener);
+      manager.on('offline', offlineListener);
+      manager.start();
+
+      source.push(makePos('gps'));
+      manager.removeSource('gps');
+
+      source.push(makePos('gps', { latitude: 0 }));
+      source.setStatus(false, 0);
+      source.pushError(new Error('late callback'));
+
+      expect(posListener).toHaveBeenCalledTimes(1);
+      expect(offlineListener).not.toHaveBeenCalled();
     });
   });
 
@@ -447,18 +473,60 @@ describe('LocationManager', () => {
       manager.start();
       source.push(makePos('gps'));
       source.setStatus(false, 0); // triggers offline + schedules retry
-      manager.stop();             // must cancel the retry timer
+      manager.stop(); // must cancel the retry timer
       vi.advanceTimersByTime(6000);
       // source.startSpy should only have been called once (initial start)
       expect(source.startSpy).toHaveBeenCalledTimes(1);
       vi.useRealTimers();
     });
+
+    it('cancels pending hysteresis timers on stop()', () => {
+      vi.useFakeTimers();
+      const primary = new StubSource('gdl90');
+      const fallback = new StubSource('nmea');
+      const manager = new LocationManager({
+        sources: [primary, fallback],
+        priorityOrder: ['gdl90', 'nmea'],
+        hysteresisMs: 1000,
+      });
+      const changeListener = vi.fn();
+      manager.on('sourceChange', changeListener);
+      manager.start();
+
+      fallback.push(makePos('nmea'));
+      primary.push(makePos('gdl90'));
+
+      manager.stop();
+      vi.advanceTimersByTime(1500);
+
+      expect(changeListener).not.toHaveBeenCalledWith('nmea', 'gdl90');
+      vi.useRealTimers();
+    });
   });
 
   describe('lower-priority source emits while active is healthy', () => {
+    it('emits from active source when active triggers reevaluate but equal-priority source is Map-first', () => {
+      // Two unlisted sources (equal priority = 0). Source 'b' added first to Map.
+      // 'a' becomes active. Then 'b' pushes (bestId='b' due to Map order, else branch entered
+      // but triggeredId='b' ≠ activeId='a'). Then 'a' pushes again — same else branch but
+      // triggeredId='a' = activeId='a' → _maybeEmit called (lines 250-251).
+      const b = new StubSource('b'); // added FIRST → wins Map iteration tie-break
+      const a = new StubSource('a');
+      const manager = new LocationManager({ sources: [b, a] }); // no priorityOrder
+      const listener = vi.fn();
+      manager.on('position', listener);
+      manager.start();
+
+      a.push(makePos('a')); // a becomes active (only healthy source)
+      b.push(makePos('b')); // b pushes — bestId='b' (first in Map), else branch, no emit
+      a.push(makePos('a')); // a pushes — bestId='b', else branch, triggeredId=activeId → emit
+
+      expect(listener).toHaveBeenCalledTimes(2); // first push + third push
+    });
+
     it('keeps emitting from active source and ignores lower-priority position', () => {
       const high = new StubSource('gdl90');
-      const low  = new StubSource('nmea');
+      const low = new StubSource('nmea');
       const manager = new LocationManager({
         sources: [high, low],
         priorityOrder: ['gdl90', 'nmea'],
@@ -467,10 +535,10 @@ describe('LocationManager', () => {
       manager.on('position', listener);
       manager.start();
 
-      high.push(makePos('gdl90'));  // gdl90 becomes active
-      high.push(makePos('gdl90'));  // emitted (active source)
-      low.push(makePos('nmea'));    // lower-priority — gdl90 is healthy, else branch fires
-      high.push(makePos('gdl90'));  // still emitted
+      high.push(makePos('gdl90')); // gdl90 becomes active
+      high.push(makePos('gdl90')); // emitted (active source)
+      low.push(makePos('nmea')); // lower-priority — gdl90 is healthy, else branch fires
+      high.push(makePos('gdl90')); // still emitted
 
       const sources = listener.mock.calls.map((c) => (c[0] as Position).source);
       expect(sources.every((s) => s === 'gdl90')).toBe(true);
@@ -510,7 +578,7 @@ describe('LocationManager', () => {
       manager.on('sourceChange', changeListener);
       manager.start();
 
-      fallback.push(makePos('nmea'));  // nmea becomes active
+      fallback.push(makePos('nmea')); // nmea becomes active
       primary.push(makePos('gdl90')); // gdl90 starts hysteresis timer
 
       // Before hysteresis elapses, nmea goes down — gdl90 should take over directly
