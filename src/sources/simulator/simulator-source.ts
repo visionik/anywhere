@@ -60,6 +60,7 @@ export class SimulatorSource extends LocationSource {
   }
 
   override start(): void {
+    this.stop();
     this._index = 0;
     this._statusEmitted = false;
     this._scheduleNext();

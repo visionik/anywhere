@@ -156,4 +156,23 @@ describe('SimulatorSource', () => {
 
     vi.useRealTimers();
   });
+
+  it('calling start() while already running restarts cleanly without leaking timers', () => {
+    vi.useFakeTimers();
+    const source = new SimulatorSource({ route: ROUTE, intervalMs: 100 });
+    const handler = vi.fn();
+    source.onPosition = handler;
+
+    source.start();
+    vi.advanceTimersByTime(100); // 1st position emitted
+    expect(handler).toHaveBeenCalledTimes(1);
+
+    // Call start() again without stop() — should cancel the in-flight timer and restart
+    source.start();
+    vi.advanceTimersByTime(100); // only 1 more call expected, not 2
+    expect(handler).toHaveBeenCalledTimes(2);
+    expect((handler.mock.calls[1][0] as Position).latitude).toBe(1); // restarted from route[0]
+
+    vi.useRealTimers();
+  });
 });
