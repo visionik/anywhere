@@ -374,6 +374,65 @@ describe('LocationManager', () => {
     });
   });
 
+  describe('removeSource active source', () => {
+    it('clears activeId and re-evaluates when the active source is removed', () => {
+      const primary = new StubSource('gdl90');
+      const fallback = new StubSource('nmea');
+      const manager = new LocationManager({
+        sources: [primary, fallback],
+        priorityOrder: ['gdl90', 'nmea'],
+      });
+      const posListener = vi.fn();
+      manager.on('position', posListener);
+      manager.start();
+
+      primary.push(makePos('gdl90')); // gdl90 active
+      manager.removeSource('gdl90');  // remove active source
+      fallback.push(makePos('nmea')); // nmea should now emit
+
+      expect((posListener.mock.calls.at(-1)?.[0] as Position).source).toBe('nmea');
+    });
+  });
+
+  describe('stop with pending retry timer', () => {
+    it('cancels the retry timer on stop()', () => {
+      vi.useFakeTimers();
+      const source = new StubSource('gps');
+      const manager = new LocationManager({
+        sources: [source],
+        offlineBehavior: 'retry',
+        retryIntervalMs: 5000,
+      });
+      manager.start();
+      source.push(makePos('gps'));
+      source.setStatus(false, 0); // triggers offline + schedules retry
+      manager.stop();             // must cancel the retry timer
+      vi.advanceTimersByTime(6000);
+      // source.startSpy should only have been called once (initial start)
+      expect(source.startSpy).toHaveBeenCalledTimes(1);
+      vi.useRealTimers();
+    });
+  });
+
+  describe('equal-priority sources', () => {
+    it('keeps the active source when a new source has equal (unlisted) priority', () => {
+      const a = new StubSource('a'); // both unlisted → equal priority
+      const b = new StubSource('b');
+      const manager = new LocationManager({ sources: [a, b] }); // no priorityOrder
+      const posListener = vi.fn();
+      manager.on('position', posListener);
+      manager.start();
+
+      a.push(makePos('a')); // a becomes active
+      b.push(makePos('b')); // b has equal priority → should NOT displace a
+      a.push(makePos('a')); // a still active
+
+      const sources = posListener.mock.calls.map((c) => (c[0] as Position).source);
+      expect(sources.filter((s) => s === 'a').length).toBeGreaterThan(0);
+      expect(sources).not.toContain('b'); // b never becomes active
+    });
+  });
+
   describe('hysteresis cancellation', () => {
     it('cancels the hysteresis timer when primary is promoted via fallback path', () => {
       vi.useFakeTimers();

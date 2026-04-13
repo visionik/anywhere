@@ -5,3 +5,7 @@ export type { EventMap } from './emitter/typed-emitter.js';
 export { LocationSource } from './location-source.js';
 export { LocationManager } from './location-manager.js';
 export type { LocationManagerOptions, LocationManagerEvents } from './location-manager.js';
+export { DeviceLocationSource } from './sources/device/device-location-source.js';
+export type { DeviceLocationSourceOptions } from './sources/device/device-location-source.js';
+export { GDL90Source } from './sources/gdl90/gdl90-source.js';
+export type { GDL90SourceOptions } from './sources/gdl90/gdl90-source.js';
