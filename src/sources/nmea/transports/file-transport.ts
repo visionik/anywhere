@@ -23,10 +23,7 @@ export class FileTransport implements NmeaTransport {
     stream.on('error', onError);
 
     const rl = createInterface({ input: stream, crlfDelay: Infinity });
-    rl.on('line', (line) => {
-      const t = line.trim();
-      if (t) onLine(t);
-    });
+    rl.on('line', (line) => { const t = line.trim(); if (t) onLine(t); });
     rl.on('error', onError);
     this._rl = rl;
   }

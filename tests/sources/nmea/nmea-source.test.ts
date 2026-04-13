@@ -17,19 +17,12 @@ const VALID_GGA = cs('$GPGGA,092204.999,4250.5589,S,14718.5084,E,1,09,1.1,300.0,
 
 // ─── Mock transport ───────────────────────────────────────────────────────────
 
-function makeMockTransport(): {
-  transport: NmeaTransport;
-  pushLine: (line: string) => void;
-  pushError: (err: Error) => void;
-} {
+function makeMockTransport(): { transport: NmeaTransport; pushLine: (line: string) => void; pushError: (err: Error) => void } {
   let lineCb: ((line: string) => void) | null = null;
   let errCb: ((err: Error) => void) | null = null;
 
   const transport: NmeaTransport = {
-    start: vi.fn((onLine, onError) => {
-      lineCb = onLine;
-      errCb = onError;
-    }),
+    start: vi.fn((onLine, onError) => { lineCb = onLine; errCb = onError; }),
     stop: vi.fn(),
   };
 
@@ -45,9 +38,7 @@ function makeMockTransport(): {
 describe('NMEASource', () => {
   let mock: ReturnType<typeof makeMockTransport>;
 
-  beforeEach(() => {
-    mock = makeMockTransport();
-  });
+  beforeEach(() => { mock = makeMockTransport(); });
 
   it('has sourceId = "nmea"', () => {
     expect(new NMEASource({ type: 'udp', port: 10110 }, mock.transport).sourceId).toBe('nmea');
@@ -81,8 +72,8 @@ describe('NMEASource', () => {
     const posHandler = vi.fn();
     source.onPosition = posHandler;
     source.start();
-    mock.pushLine(VALID_GGA); // altitude = 300m
-    mock.pushLine(VALID_RMC); // triggers emission
+    mock.pushLine(VALID_GGA);  // altitude = 300m
+    mock.pushLine(VALID_RMC);  // triggers emission
     const pos: Position = posHandler.mock.calls[0][0];
     expect(pos.altitude).toBeCloseTo(300.0);
     expect(pos.satellites).toBe(9);
@@ -115,10 +106,10 @@ describe('NMEASource', () => {
     const vtg = cs('$GPVTG,090.0,T,089.5,M,010.0,N,018.5,K,A');
     const gsa = cs('$GPGSA,A,3,04,05,,09,12,,,24,,,,,2.5,1.3,2.1');
 
-    mock.pushLine(VALID_GGA); // altitude, satellites, hdop
-    mock.pushLine(vtg); // heading, speed
-    mock.pushLine(gsa); // fixType, hdop
-    mock.pushLine(VALID_RMC); // triggers emission
+    mock.pushLine(VALID_GGA);  // altitude, satellites, hdop
+    mock.pushLine(vtg);         // heading, speed
+    mock.pushLine(gsa);         // fixType, hdop
+    mock.pushLine(VALID_RMC);  // triggers emission
 
     expect(posHandler).toHaveBeenCalledOnce();
     const pos: Position = posHandler.mock.calls[0][0];

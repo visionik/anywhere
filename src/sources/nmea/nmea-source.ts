@@ -83,16 +83,11 @@ export class NMEASource extends LocationSource {
   /* c8 ignore start */
   private static _createTransport(options: NMEASourceOptions): NmeaTransport {
     switch (options.type) {
-      case 'udp':
-        return new UdpTransport(options.port);
-      case 'tcp':
-        return new TcpTransport(options.host, options.port);
-      case 'serial':
-        return new SerialTransport(options.path, options.baudRate);
-      case 'bluetooth':
-        return new BluetoothTransport(options.deviceName);
-      case 'file':
-        return new FileTransport(options.path, options.rateMultiplier);
+      case 'udp':       return new UdpTransport(options.port);
+      case 'tcp':       return new TcpTransport(options.host, options.port);
+      case 'serial':    return new SerialTransport(options.path, options.baudRate);
+      case 'bluetooth': return new BluetoothTransport(options.deviceName);
+      case 'file':      return new FileTransport(options.path, options.rateMultiplier);
     }
   }
   /* c8 ignore stop */

@@ -25,13 +25,7 @@ function makeGeoPos(coords: GeolocationCoordinates, timestamp = Date.now()): Geo
 }
 
 function makePositionError(code: number, message: string): GeolocationPositionError {
-  return {
-    code,
-    message,
-    PERMISSION_DENIED: 1,
-    POSITION_UNAVAILABLE: 2,
-    TIMEOUT: 3,
-  } as GeolocationPositionError;
+  return { code, message, PERMISSION_DENIED: 1, POSITION_UNAVAILABLE: 2, TIMEOUT: 3 } as GeolocationPositionError;
 }
 
 // Mock navigator.geolocation
@@ -86,11 +80,11 @@ describe('DeviceLocationSource', () => {
         maximumAgeMs: 1000,
       });
       source.start();
-      expect(watchPositionSpy).toHaveBeenCalledWith(expect.any(Function), expect.any(Function), {
-        enableHighAccuracy: false,
-        timeout: 5000,
-        maximumAge: 1000,
-      });
+      expect(watchPositionSpy).toHaveBeenCalledWith(
+        expect.any(Function),
+        expect.any(Function),
+        { enableHighAccuracy: false, timeout: 5000, maximumAge: 1000 },
+      );
     });
 
     it('emits a normalized Position when watchPosition fires', () => {
@@ -123,7 +117,9 @@ describe('DeviceLocationSource', () => {
       source.onStatus = statusHandler;
       source.start();
       watchCallback!(makeGeoPos(makeCoords({ accuracy: 5 })));
-      expect(statusHandler).toHaveBeenCalledWith(expect.objectContaining({ connected: true }));
+      expect(statusHandler).toHaveBeenCalledWith(
+        expect.objectContaining({ connected: true }),
+      );
     });
 
     it('sets fixType to "3d" when altitude is present', () => {

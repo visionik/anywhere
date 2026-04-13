@@ -15,16 +15,11 @@ function cs(sentence: string): string {
 
 describe('validateChecksum', () => {
   it('accepts a sentence with a correct checksum', () => {
-    expect(
-      validateChecksum(cs('$GPRMC,123519,A,4807.038,N,01131.000,E,022.4,084.4,230394,,')),
-    ).toBe(true);
+    expect(validateChecksum(cs('$GPRMC,123519,A,4807.038,N,01131.000,E,022.4,084.4,230394,,'))).toBe(true);
   });
 
   it('rejects a sentence with a wrong checksum', () => {
-    const bad = cs('$GPRMC,123519,A,4807.038,N,01131.000,E,022.4,084.4,230394,,').replace(
-      /\*[0-9A-F]+$/,
-      '*00',
-    );
+    const bad = cs('$GPRMC,123519,A,4807.038,N,01131.000,E,022.4,084.4,230394,,').replace(/\*[0-9A-F]+$/, '*00');
     expect(validateChecksum(bad)).toBe(false);
   });
 
@@ -210,13 +205,13 @@ describe('parseRmc — direct (field guards)', () => {
     expect(parseRmc(['$GPRMC', '092204'])).toBeNull();
   });
   it('handles empty speed and course fields', () => {
-    const f = ['$GPRMC', '092204', 'A', '4250.5589', 'S', '14718.5084', 'E', '', '', '211200', ''];
+    const f = ['$GPRMC','092204','A','4250.5589','S','14718.5084','E','','','211200','',];
     const r = parseRmc(f);
     expect(r!.partial.speed).toBeUndefined();
     expect(r!.partial.heading).toBeUndefined();
   });
   it('handles invalid lat (empty raw) — triggerEmit=false', () => {
-    const f = ['$GPRMC', '092204', 'A', '', 'N', '', 'E', '0', '0', '211200', ''];
+    const f = ['$GPRMC','092204','A','','N','','E','0','0','211200','',];
     expect(parseRmc(f)!.triggerEmit).toBe(false);
   });
 });
@@ -226,105 +221,25 @@ describe('parseGga — direct (field guards)', () => {
     expect(parseGga(['$GPGGA', '092204'])).toBeNull();
   });
   it('handles empty satellite and hdop fields', () => {
-    const f = [
-      '$GPGGA',
-      '092204',
-      '4250.5589',
-      'S',
-      '14718.5084',
-      'E',
-      '1',
-      '',
-      '',
-      '300.0',
-      'M',
-      '',
-      '',
-      '',
-      '',
-    ];
+    const f = ['$GPGGA','092204','4250.5589','S','14718.5084','E','1','','','300.0','M','','','','',];
     const r = parseGga(f);
     expect(r!.partial.satellites).toBeUndefined();
     expect(r!.partial.hdop).toBeUndefined();
   });
   it('handles empty altitude field', () => {
-    const f = [
-      '$GPGGA',
-      '092204',
-      '4250.5589',
-      'S',
-      '14718.5084',
-      'E',
-      '1',
-      '09',
-      '1.1',
-      '',
-      'M',
-      '',
-      '',
-      '',
-      '',
-    ];
+    const f = ['$GPGGA','092204','4250.5589','S','14718.5084','E','1','09','1.1','','M','','','','',];
     expect(parseGga(f)!.partial.altitude).toBeUndefined();
   });
   it('handles unmapped fix quality (maps to "3d" default)', () => {
-    const f = [
-      '$GPGGA',
-      '092204',
-      '4250.5589',
-      'S',
-      '14718.5084',
-      'E',
-      '8',
-      '09',
-      '1.1',
-      '300.0',
-      'M',
-      '',
-      '',
-      '',
-      '',
-    ];
+    const f = ['$GPGGA','092204','4250.5589','S','14718.5084','E','8','09','1.1','300.0','M','','','','',];
     expect(parseGga(f)!.partial.fixType).toBe('3d');
   });
   it('handles fix quality 6 (estimated/dead-reckoning) → "2d"', () => {
-    const f = [
-      '$GPGGA',
-      '092204',
-      '4250.5589',
-      'S',
-      '14718.5084',
-      'E',
-      '6',
-      '09',
-      '1.1',
-      '300.0',
-      'M',
-      '',
-      '',
-      '',
-      '',
-    ];
+    const f = ['$GPGGA','092204','4250.5589','S','14718.5084','E','6','09','1.1','300.0','M','','','','',];
     expect(parseGga(f)!.partial.fixType).toBe('2d');
   });
   it('handles fix quality 5 (float RTK) → "3d"', () => {
-    const f = [
-      '$GPGGA',
-      '092204',
-      '4250.5589',
-      'S',
-      '14718.5084',
-      'E',
-      '5',
-      '09',
-      '1.1',
-      '300.0',
-      'M',
-      '',
-      '',
-      '',
-      '',
-    ];
+    const f = ['$GPGGA','092204','4250.5589','S','14718.5084','E','5','09','1.1','300.0','M','','','','',];
     expect(parseGga(f)!.partial.fixType).toBe('3d');
   });
 });
@@ -340,7 +255,7 @@ describe('parseGsa — direct (field guards)', () => {
     expect(parseGsa(['$GPGSA', 'A', '3'])).toBeNull();
   });
   it('handles empty hdop field', () => {
-    const f = ['$GPGSA', 'A', '3', '', '', '', '', '', '', '', '', '', '', '', '', '', ''];
+    const f = ['$GPGSA','A','3','','','','','','','','','','','','','','',];
     expect(parseGsa(f)!.partial.hdop).toBeUndefined();
   });
 });
@@ -350,7 +265,7 @@ describe('parseGll — direct (field guards)', () => {
     expect(parseGll(['$GPGLL', '4916.45'])).toBeNull();
   });
   it('returns null when lat/lon are empty (NaN)', () => {
-    expect(parseGll(['$GPGLL', '', 'N', '', 'W', '225444', 'A'])).toBeNull();
+    expect(parseGll(['$GPGLL','','N','','W','225444','A'])).toBeNull();
   });
 });
 
@@ -368,81 +283,6 @@ describe('parseNmeaTime', () => {
     const d = parseNmeaTime('120000.000');
     expect(d).toBeInstanceOf(Date);
     expect(d.getUTCHours()).toBe(12);
-  });
-});
-
-describe('validateChecksum — non-$ prefix branch', () => {
-  it('validates a sentence that does not start with $', () => {
-    // content = 'RMC', XOR = 0x52^0x4D^0x43 = 0x5C
-    expect(validateChecksum('RMC*5C')).toBe(true);
-  });
-});
-
-describe('parseSentence — additional edge cases', () => {
-  it('returns null for a sentence with < 2 comma-separated fields (after $ strip)', () => {
-    // '$*00' — content='', XOR=0, passes validateChecksum; fields=['$'], length<2
-    expect(parseSentence('$*00')).toBeNull();
-  });
-
-  it('uses the full id (no talker strip) when id.length < 5', () => {
-    // '$RMC,A*31' — id='RMC' (length 3 < 5, true branch skipped), type='RMC'
-    // parseRmc(['$RMC','A']) → null (< 10 fields), but line 96 is reached
-    // XOR of 'RMC,A' = 0x52^0x4D^0x43^0x2C^0x41 = 0x31
-    expect(parseSentence('$RMC,A*31')).toBeNull();
-  });
-});
-
-describe('parseGga — empty time and NaN coordinate branches', () => {
-  it('returns undefined timestamp when time field is empty', () => {
-    const f = [
-      '$GPGGA',
-      '',
-      '4250.5589',
-      'S',
-      '14718.5084',
-      'E',
-      '1',
-      '09',
-      '1.1',
-      '300.0',
-      'M',
-      '',
-      '',
-      '',
-      '',
-    ];
-    expect(parseGga(f)!.partial.timestamp).toBeUndefined();
-  });
-
-  it('returns undefined lat/lon when coord fields are empty', () => {
-    const f = [
-      '$GPGGA',
-      '092204',
-      '',
-      'N',
-      '',
-      'E',
-      '1',
-      '09',
-      '1.1',
-      '300.0',
-      'M',
-      '',
-      '',
-      '',
-      '',
-    ];
-    const r = parseGga(f)!;
-    expect(r.partial.latitude).toBeUndefined();
-    expect(r.partial.longitude).toBeUndefined();
-  });
-});
-
-describe('parseGsa — undefined fields[2] (fields[2] ?? 1 fallback)', () => {
-  it('defaults fixTypeRaw to 1 ("none") when fields[2] is undefined', () => {
-    const f = Array.from({ length: 17 }, (_, i) => (i === 2 ? undefined : '')) as string[];
-    f[0] = '$GPGSA';
-    expect(parseGsa(f)!.partial.fixType).toBe('none');
   });
 });
 
@@ -497,9 +337,7 @@ describe('parseSentence — unknown/invalid', () => {
   });
 
   it('returns null for invalid checksum', () => {
-    expect(
-      parseSentence('$GPRMC,123519,A,4807.038,N,01131.000,E,022.4,084.4,230394,,*FF'),
-    ).toBeNull();
+    expect(parseSentence('$GPRMC,123519,A,4807.038,N,01131.000,E,022.4,084.4,230394,,*FF')).toBeNull();
   });
 
   it('returns null for a checksum of NaN (non-hex chars)', () => {

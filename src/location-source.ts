@@ -43,7 +43,6 @@ export abstract class LocationSource {
   /**
    * Emit a normalized position fix to the registered consumer.
    * Call this from subclass implementations when a new fix is available.
-   * @param position - Normalized fix to forward to the consumer.
    */
   protected emitPosition(position: Position): void {
     this.onPosition?.(position);
@@ -51,7 +50,6 @@ export abstract class LocationSource {
 
   /**
    * Emit a status update to signal connection health or fix quality changes.
-   * @param status - Current connection/fix state for the source.
    */
   protected emitStatus(status: StatusEvent): void {
     this.onStatus?.(status);
@@ -59,7 +57,6 @@ export abstract class LocationSource {
 
   /**
    * Emit an error to the registered consumer.
-   * @param error - Failure encountered by the source implementation.
    */
   protected emitError(error: Error): void {
     this.onError?.(error);

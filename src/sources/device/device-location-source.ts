@@ -40,9 +40,6 @@ export class DeviceLocationSource extends LocationSource {
   private readonly _opts: Required<DeviceLocationSourceOptions>;
   private _watchId: number | null = null;
 
-  /**
-   * @param options - Browser geolocation mode and accuracy settings.
-   */
   constructor(options: DeviceLocationSourceOptions = {}) {
     super();
     this._opts = {

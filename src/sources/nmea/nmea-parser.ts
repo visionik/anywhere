@@ -25,9 +25,7 @@ export interface ParsedSentence {
 export function validateChecksum(sentence: string): boolean {
   const starIdx = sentence.lastIndexOf('*');
   if (starIdx === -1) return false;
-  const content = sentence.startsWith('$')
-    ? sentence.slice(1, starIdx)
-    : sentence.slice(0, starIdx);
+  const content = sentence.startsWith('$') ? sentence.slice(1, starIdx) : sentence.slice(0, starIdx);
   const expected = parseInt(sentence.slice(starIdx + 1), 16);
   if (isNaN(expected)) return false;
   let xor = 0;
@@ -73,9 +71,7 @@ export function parseNmeaTime(timeStr: string, dateStr?: string): Date {
   }
 
   const now = new Date();
-  return new Date(
-    Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate(), h, m, sec, ms),
-  );
+  return new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate(), h, m, sec, ms));
 }
 
 // ─── Sentence dispatch ────────────────────────────────────────────────────────
@@ -91,7 +87,6 @@ export function parseSentence(sentence: string): ParsedSentence | null {
 
   // Strip checksum suffix
   const starIdx = sentence.lastIndexOf('*');
-  /* c8 ignore next */
   const raw = starIdx !== -1 ? sentence.slice(0, starIdx) : sentence;
   const fields = raw.split(',');
   if (fields.length < 2) return null;
@@ -101,17 +96,11 @@ export function parseSentence(sentence: string): ParsedSentence | null {
   const type = id.length >= 5 ? id.slice(2) : id; // strip 2-char talker ID
 
   switch (type) {
-    case 'RMC':
-      return parseRmc(fields);
-    case 'GGA':
-      return parseGga(fields);
-    case 'VTG':
-      return parseVtg(fields);
-    case 'GSA':
-      return parseGsa(fields);
-    case 'GLL':
-      return parseGll(fields);
-    default:
-      return null;
+    case 'RMC': return parseRmc(fields);
+    case 'GGA': return parseGga(fields);
+    case 'VTG': return parseVtg(fields);
+    case 'GSA': return parseGsa(fields);
+    case 'GLL': return parseGll(fields);
+    default:    return null;
   }
 }

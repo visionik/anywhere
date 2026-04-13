@@ -32,10 +32,7 @@ export class TcpTransport implements NmeaTransport {
       buf += chunk.toString();
       const lines = buf.split('\n');
       buf = lines.pop() ?? '';
-      for (const line of lines) {
-        const t = line.trim();
-        if (t) onLine(t);
-      }
+      for (const line of lines) { const t = line.trim(); if (t) onLine(t); }
     });
     socket.on('error', (err) => {
       onError(err);

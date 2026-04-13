@@ -17,10 +17,7 @@ export class UdpTransport implements NmeaTransport {
       buf += msg.toString();
       const lines = buf.split('\n');
       buf = lines.pop() ?? '';
-      for (const line of lines) {
-        const t = line.trim();
-        if (t) onLine(t);
-      }
+      for (const line of lines) { const t = line.trim(); if (t) onLine(t); }
     });
     socket.on('error', onError);
     socket.bind(this._port);

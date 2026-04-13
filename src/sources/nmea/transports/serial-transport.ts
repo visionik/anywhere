@@ -13,21 +13,16 @@ export class SerialTransport implements NmeaTransport {
   }
 
   start(onLine: (line: string) => void, onError: (err: Error) => void): void {
-    import('serialport')
-      .then(({ SerialPort, ReadlineParser }) => {
-        const port = new SerialPort({ path: this._path, baudRate: this._baudRate });
-        const parser = port.pipe(new ReadlineParser({ delimiter: '\r\n' }));
-        parser.on('data', (line: string) => {
-          const t = line.trim();
-          if (t) onLine(t);
-        });
-        port.on('error', (err: Error) => onError(err));
-        this._port = port;
-      })
-      .catch((err: unknown) => {
-        const msg = err instanceof Error ? err.message : String(err);
-        onError(new Error(`serialport unavailable: ${msg}. Install it with: npm i serialport`));
-      });
+    import('serialport').then(({ SerialPort, ReadlineParser }) => {
+      const port = new SerialPort({ path: this._path, baudRate: this._baudRate });
+      const parser = port.pipe(new ReadlineParser({ delimiter: '\r\n' }));
+      parser.on('data', (line: string) => { const t = line.trim(); if (t) onLine(t); });
+      port.on('error', (err: Error) => onError(err));
+      this._port = port;
+    }).catch((err: unknown) => {
+      const msg = err instanceof Error ? err.message : String(err);
+      onError(new Error(`serialport unavailable: ${msg}. Install it with: npm i serialport`));
+    });
   }
 
   stop(): void {

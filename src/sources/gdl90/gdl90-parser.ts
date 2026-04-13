@@ -17,15 +17,15 @@ export interface Gdl90Message {
   // Heartbeat fields
   gpsValid?: boolean;
   // Ownship fields
-  latitude?: number; // decimal degrees WGS84
-  longitude?: number; // decimal degrees WGS84
-  altitudeM?: number; // meters MSL
-  speedMs?: number; // meters per second
-  heading?: number; // degrees true (0-360)
-  nacP?: number; // Navigation Accuracy Category for Position (0-11)
+  latitude?: number;   // decimal degrees WGS84
+  longitude?: number;  // decimal degrees WGS84
+  altitudeM?: number;  // meters MSL
+  speedMs?: number;    // meters per second
+  heading?: number;    // degrees true (0-360)
+  nacP?: number;       // Navigation Accuracy Category for Position (0-11)
   // AHRS fields
-  rollDeg?: number; // degrees (positive = right wing down)
-  pitchDeg?: number; // degrees (positive = nose up)
+  rollDeg?: number;    // degrees (positive = right wing down)
+  pitchDeg?: number;   // degrees (positive = nose up)
   headingDeg?: number; // degrees (magnetic or true per byte 6)
 }
 
@@ -91,20 +91,14 @@ export function extractFrames(datagram: Buffer): Uint8Array[] {
 
   while (i < datagram.length) {
     // Find start flag
-    if (datagram[i] !== 0x7e) {
-      i++;
-      continue;
-    }
+    if (datagram[i] !== 0x7e) { i++; continue; }
     const start = i;
     i++;
 
     // Find end flag
     let end = -1;
     for (let j = i; j < datagram.length; j++) {
-      if (datagram[j] === 0x7e) {
-        end = j;
-        break;
-      }
+      if (datagram[j] === 0x7e) { end = j; break; }
     }
     if (end === -1) break; // No closing flag
 
@@ -121,10 +115,7 @@ export function extractFrames(datagram: Buffer): Uint8Array[] {
     }
 
     // Must have at least 3 bytes (1 payload + 2 CRC)
-    if (unstuffed.length < 3) {
-      i = end + 1;
-      continue;
-    }
+    if (unstuffed.length < 3) { i = end + 1; continue; }
 
     const payload = new Uint8Array(unstuffed.slice(0, -2));
     const frameCrc = (unstuffed[unstuffed.length - 2]! << 8) | unstuffed[unstuffed.length - 1]!;
@@ -164,14 +155,10 @@ export function parseGdl90Message(payload: Uint8Array): Gdl90Message | null {
   const msgId = payload[0]!;
 
   switch (msgId) {
-    case 0x00:
-      return parseHeartbeat(payload);
-    case 0x0b:
-      return parseOwnship(payload);
-    case 0x65:
-      return parseAhrs(payload);
-    default:
-      return { type: 'unknown', messageId: msgId };
+    case 0x00: return parseHeartbeat(payload);
+    case 0x0b: return parseOwnship(payload);
+    case 0x65: return parseAhrs(payload);
+    default:   return { type: 'unknown', messageId: msgId };
   }
 }
 
@@ -211,7 +198,9 @@ function parseOwnship(payload: Uint8Array): Gdl90Message {
   // Altitude: upper 12 bits of bytes 12-13
   const altRaw = ((payload[12]! << 4) | (payload[13]! >> 4)) & 0xfff;
   const altitudeM =
-    altRaw !== ALT_INVALID ? (altRaw * ALT_LSB_FT - ALT_OFFSET_FT) * 0.3048 : undefined;
+    altRaw !== ALT_INVALID
+      ? (altRaw * ALT_LSB_FT - ALT_OFFSET_FT) * 0.3048
+      : undefined;
 
   // Ground speed: upper 12 bits of bytes 16-17
   const speedRaw = ((payload[16]! << 4) | (payload[17]! >> 4)) & 0xfff;
@@ -223,16 +212,7 @@ function parseOwnship(payload: Uint8Array): Gdl90Message {
   // NACp: lower nibble of byte 15
   const nacP = payload[15]! & 0x0f;
 
-  return {
-    type: 'ownship',
-    messageId: 0x0b,
-    latitude,
-    longitude,
-    altitudeM,
-    speedMs,
-    heading,
-    nacP,
-  };
+  return { type: 'ownship', messageId: 0x0b, latitude, longitude, altitudeM, speedMs, heading, nacP };
 }
 
 // ─── ForeFlight AHRS (0x65) ──────────────────────────────────────────────────
